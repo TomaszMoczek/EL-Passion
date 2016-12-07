@@ -13,14 +13,12 @@
 
 @interface MasterViewController ()
 
-@property NSMutableArray *objects;
-
 @end
 
 @implementation MasterViewController
 
-@synthesize urls = _urls;
 @synthesize data = _data;
+@synthesize urls = _urls;
 @synthesize buttonFirst = _buttonFirst;
 @synthesize buttonPrev = _buttonPrev;
 @synthesize buttonNext = _buttonNext;
@@ -29,8 +27,6 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-
-    self.objects = [[NSMutableArray alloc] init];
 
     self.title = NSLocalizedString(@"GitHub's Users", @"GitHub's Users");
     
@@ -76,9 +72,9 @@
 
 - (void)viewDidUnload {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
-    self.searchTableViewCell = nil;
-    [self.objects removeAllObjects];
-    self.objects = nil;
+    
+    [self.data removeAllObjects];
+    [self.urls removeAllObjects];
     
     [super viewDidUnload];
 }
@@ -157,8 +153,8 @@
                 }
                 
                 dispatch_async(dispatch_get_main_queue(), ^{
+                    self.data = [NSMutableArray arrayWithArray:[jsonOutput objectForKey:@"items"]];
                     self.urls = [NSMutableDictionary dictionaryWithDictionary:links];
-                    self.data = [NSMutableDictionary dictionaryWithDictionary:jsonOutput];
                     
                     [self configureView];
                 });
@@ -171,14 +167,12 @@
 
 - (void)textFieldDidEndEditing:(NSNotification *)notification {
     if ([self.searchTableViewCell.textField.text length] != 0) {
-        NSString *url = [NSString stringWithFormat:@"https://api.github.com/search/users?q=%@&page=1&per_page=100&order=asc", [self.searchTableViewCell.textField.text stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]]];
+        NSString *url = [NSString stringWithFormat:@"https://api.github.com/search/users?q=%@&page=1&per_page=25&order=asc", [self.searchTableViewCell.textField.text stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]]];
         
         [self getData:url];
     } else {
-        [self.urls removeAllObjects];
         [self.data removeAllObjects];
-        
-        [self.objects removeAllObjects];
+        [self.urls removeAllObjects];
         
         [self configureView];
     }
@@ -207,9 +201,9 @@
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
     if ([[segue identifier] isEqualToString:@"showDetail"]) {
         NSIndexPath *indexPath = [self.tableView indexPathForSelectedRow];
-        NSDate *object = self.objects[indexPath.row];
+        NSString *url = [[self.data objectAtIndex:indexPath.row] objectForKey:@"url"];
         DetailViewController *controller = (DetailViewController *)[[segue destinationViewController] topViewController];
-        [controller setDetailItem:object];
+        [controller setDetailItem:url];
         controller.navigationItem.leftBarButtonItem = self.splitViewController.displayModeButtonItem;
         controller.navigationItem.leftItemsSupplementBackButton = YES;
     }
@@ -248,7 +242,7 @@
         case SearchSection:
             return 1;
         case UsersSection:
-            return self.objects.count;
+            return [self.data count];
         default:
             return 0;
     }
@@ -262,9 +256,9 @@
     } else if (indexPath.section == UsersSection) {
         cell = [tableView dequeueReusableCellWithIdentifier:@"Cell" forIndexPath:indexPath];
         
-        NSDate *object = self.objects[indexPath.row];
-        cell.textLabel.text = [object description];
-        cell.detailTextLabel.text = [object description];
+        cell.imageView.image = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:[[self.data objectAtIndex:indexPath.row] objectForKey:@"avatar_url"]]]];
+        cell.textLabel.text = [[self.data objectAtIndex:indexPath.row] objectForKey:@"login"];
+        cell.detailTextLabel.text = [NSString stringWithFormat:@"Score: %@", [[self.data objectAtIndex:indexPath.row] objectForKey:@"score"]];
     }
     
     return cell;
