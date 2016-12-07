@@ -49,7 +49,7 @@
 
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(textFieldDidEndEditing:) name:TextFieldDidEndEditing object:nil];
     
-    [self configureview];
+    [self configureView];
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -85,7 +85,7 @@
 
 #pragma mart - Other
 
-- (void)configureview {
+- (void)configureView {
     [self.buttonFirst setEnabled:[self.urls objectForKey:@"first"] == nil ? NO : YES];
     [self.buttonPrev setEnabled:[self.urls objectForKey:@"prev"] == nil ? NO : YES];
     [self.buttonNext setEnabled:[self.urls objectForKey:@"next"] == nil ? NO : YES];
@@ -105,35 +105,10 @@
                 [alertController addAction:action];
                 
                 [self presentViewController:alertController animated:YES completion:nil];
-                
-                [self.objects removeAllObjects];
-                
-                [self configureview];
             });
         } else {
-            NSMutableDictionary *links = [[NSMutableDictionary alloc] init];
-            NSString *linkHeader = [[(NSHTTPURLResponse *)response allHeaderFields] objectForKey:@"Link"];
-            
-            if ([linkHeader length] != 0) {
-                NSArray *_links = [linkHeader componentsSeparatedByString:@", "];
-                
-                for (int i=0; i<[_links count]; ++i) {
-                    NSArray *_link = [[_links objectAtIndex:i] componentsSeparatedByString:@"; "];
-                    
-                    if ([_link count] == 2) {
-                        NSArray *_tokens = [[_link objectAtIndex:1] componentsSeparatedByString:@"\""];
-                        
-                        if ([_tokens count] == 3) {
-                            NSString *key = [_tokens objectAtIndex:1];
-                            NSString *value = [[[_link objectAtIndex:0] stringByReplacingOccurrencesOfString:@"<" withString:@""] stringByReplacingOccurrencesOfString:@">" withString:@""];
-                            
-                            [links setObject:value forKey:key];
-                        }
-                    }
-                }
-            }
-
             NSError *jsonError = nil;
+            NSUInteger statusCode = [(NSHTTPURLResponse *)response statusCode];
             NSDictionary *jsonOutput = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
             
             if (jsonError != nil) {
@@ -145,17 +120,47 @@
                     [alertController addAction:action];
                     
                     [self presentViewController:alertController animated:YES completion:nil];
+                });
+            } else if (statusCode != 200) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    NSString *message = [NSString stringWithFormat:@"%@: %lu\n%@: %@\n\n%@", NSLocalizedString(@"Status Code", @"Status Code"), (unsigned long)statusCode, NSLocalizedString(@"Description", @"Description"), [NSHTTPURLResponse localizedStringForStatusCode:statusCode], [jsonOutput objectForKey:@"message"]];
                     
-                    [self.objects removeAllObjects];
+                    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Error", @"Error") message:message preferredStyle:UIAlertControllerStyleAlert];
                     
-                    [self configureview];
+                    UIAlertAction *action = [UIAlertAction actionWithTitle:NSLocalizedString(@"Cancel", @"Cancel") style:UIAlertActionStyleCancel handler:nil];
+                    
+                    [alertController addAction:action];
+                    
+                    [self presentViewController:alertController animated:YES completion:nil];
                 });
             } else {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    self.urls = [NSDictionary dictionaryWithDictionary:links];
-                    self.data = [NSDictionary dictionaryWithDictionary:jsonOutput];
+                NSMutableDictionary *links = [[NSMutableDictionary alloc] init];
+                NSString *linkHeader = [[(NSHTTPURLResponse *)response allHeaderFields] objectForKey:@"Link"];
+                
+                if ([linkHeader length] != 0) {
+                    NSArray *_links = [linkHeader componentsSeparatedByString:@", "];
                     
-                    [self configureview];
+                    for (int i=0; i<[_links count]; ++i) {
+                        NSArray *_link = [[_links objectAtIndex:i] componentsSeparatedByString:@"; "];
+                        
+                        if ([_link count] == 2) {
+                            NSArray *_tokens = [[_link objectAtIndex:1] componentsSeparatedByString:@"\""];
+                            
+                            if ([_tokens count] == 3) {
+                                NSString *key = [_tokens objectAtIndex:1];
+                                NSString *value = [[[_link objectAtIndex:0] stringByReplacingOccurrencesOfString:@"<" withString:@""] stringByReplacingOccurrencesOfString:@">" withString:@""];
+                                
+                                [links setObject:value forKey:key];
+                            }
+                        }
+                    }
+                }
+                
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    self.urls = [NSMutableDictionary dictionaryWithDictionary:links];
+                    self.data = [NSMutableDictionary dictionaryWithDictionary:jsonOutput];
+                    
+                    [self configureView];
                 });
             }
         }
@@ -170,9 +175,12 @@
         
         [self getData:url];
     } else {
+        [self.urls removeAllObjects];
+        [self.data removeAllObjects];
+        
         [self.objects removeAllObjects];
         
-        [self configureview];
+        [self configureView];
     }
 }
 
