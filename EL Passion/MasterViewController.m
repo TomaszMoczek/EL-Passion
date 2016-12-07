@@ -19,24 +19,37 @@
 
 @implementation MasterViewController
 
+@synthesize buttonFirst = _buttonFirst;
+@synthesize buttonPrev = _buttonPrev;
+@synthesize buttonNext = _buttonNext;
+@synthesize buttonLast = _buttonLast;
 @synthesize searchTableViewCell = _searchTableViewCell;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    if (!self.objects) {
-        self.objects = [[NSMutableArray alloc] init];
-    }
-    for (int i=0; i<4; ++i) {
-        [self.objects insertObject:[NSDate date] atIndex:0];
-    }
+    self.title = NSLocalizedString(@"GitHub's Users", @"GitHub's Users");
     
-    self.title = NSLocalizedString(@"GitHub Users", @"GitHub Users");
-    self.splitViewController.preferredDisplayMode = UISplitViewControllerDisplayModeAllVisible;
-    self.detailViewController = (DetailViewController *)[[self.splitViewController.viewControllers lastObject] topViewController];
+    self.buttonFirst = [[UIBarButtonItem alloc] initWithTitle:@"<<" style:UIBarButtonItemStyleDone target:self action:@selector(first)];
+    self.buttonPrev = [[UIBarButtonItem alloc] initWithTitle:@"<" style:UIBarButtonItemStyleDone target:self action:@selector(prev)];
+    self.buttonNext = [[UIBarButtonItem alloc] initWithTitle:@">" style:UIBarButtonItemStyleDone target:self action:@selector(next)];
+    self.buttonLast = [[UIBarButtonItem alloc] initWithTitle:@">>" style:UIBarButtonItemStyleDone target:self action:@selector(last)];
+    
+    [self.navigationItem setRightBarButtonItems:[NSArray arrayWithObjects:self.buttonLast, self.buttonNext, self.buttonPrev, self.buttonFirst, nil]];
+    
     self.searchTableViewCell = [[SearchTableViewCell alloc] initWithFrame:CGRectZero];
     
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(imageViewTouchBegan:) name:ImageViewTouchBegan object:nil];
+    self.splitViewController.preferredDisplayMode = UISplitViewControllerDisplayModeAllVisible;
+    
+    self.detailViewController = (DetailViewController *)[[self.splitViewController.viewControllers lastObject] topViewController];
+
+    self.objects = [[NSMutableArray alloc] init];
+    
+    [self.buttonFirst setEnabled:NO];
+    [self.buttonPrev setEnabled:NO];
+    [self.buttonNext setEnabled:NO];
+    [self.buttonLast setEnabled:NO];
+    
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(textFieldDidEndEditing:) name:TextFieldDidEndEditing object:nil];
 }
 
@@ -65,46 +78,53 @@
 - (void)viewDidUnload {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     self.searchTableViewCell = nil;
+    [self.objects removeAllObjects];
+    self.objects = nil;
     
     [super viewDidUnload];
 }
 
 #pragma mark - Notifications
 
-- (void)imageViewTouchBegan:(NSNotification *)notification {
-    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"EL Passion" message:NSLocalizedString(@"Enter GitHub's Credentials", @"Enter GitHub's Credentials") preferredStyle:UIAlertControllerStyleAlert];
-
-    [alertController addTextFieldWithConfigurationHandler:^(UITextField * textField) {
-        textField.placeholder = @"GitHub's URL";
-        [textField setClearButtonMode:UITextFieldViewModeWhileEditing];
-    }];
-    [alertController addTextFieldWithConfigurationHandler:^(UITextField * textField) {
-        textField.placeholder = @"Username";
-        [textField setClearButtonMode:UITextFieldViewModeWhileEditing];
-    }];
-    [alertController addTextFieldWithConfigurationHandler:^(UITextField * textField) {
-        textField.placeholder = @"Password";
-        textField.secureTextEntry = YES;
-        [textField setClearButtonMode:UITextFieldViewModeWhileEditing];
-    }];
+- (void)textFieldDidEndEditing:(NSNotification *)notification {
+    [self.objects removeAllObjects];
     
-    UIAlertAction *alertActionOK = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction *alertAction) {
-        // ...
-        [alertController dismissViewControllerAnimated:YES completion:nil];
-    }];
+    [self.buttonFirst setEnabled:NO];
+    [self.buttonPrev setEnabled:NO];
+    [self.buttonNext setEnabled:NO];
+    [self.buttonLast setEnabled:NO];
     
-    UIAlertAction *alertActionCancel = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction *alertAction) {
-        [alertController dismissViewControllerAnimated:YES completion:nil];
-    }];
+    if (self.searchTableViewCell.textField.text != nil
+        && self.searchTableViewCell.textField.text.length != 0) {
+        for (int i=0; i<4; ++i) {
+            [self.objects insertObject:[NSDate date] atIndex:0];
+        }
+        
+        [self.buttonFirst setEnabled:YES];
+        [self.buttonPrev setEnabled:YES];
+        [self.buttonNext setEnabled:YES];
+        [self.buttonLast setEnabled:YES];
+    }
     
-    [alertController addAction:alertActionOK];
-    [alertController addAction:alertActionCancel];
-    
-    [self presentViewController:alertController animated:YES completion:nil];
+    [self.tableView reloadData];
 }
 
-- (void)textFieldDidEndEditing:(NSNotification *)notification {
-    NSLog(@"%@", self.searchTableViewCell.textField.text);
+#pragma mark - Actions
+
+- (void)first {
+    
+}
+
+- (void)prev {
+    
+}
+
+- (void)next {
+    
+}
+
+- (void) last {
+    
 }
 
 #pragma mark - Segues
@@ -130,8 +150,8 @@
     switch (section) {
         case SearchSection:
             return NSLocalizedString(@"Search", @"Search");
-        case ResultsSection:
-            return NSLocalizedString(@"Results", @"Results");
+        case UsersSection:
+            return NSLocalizedString(@"Users", @"Users");
         default:
             return nil;
     }
@@ -141,7 +161,7 @@
     switch (indexPath.section) {
         case SearchSection:
             return [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad ? 104.0 : 84.0;
-        case ResultsSection:
+        case UsersSection:
             return 44.0;
         default:
             return 0.0;
@@ -152,7 +172,7 @@
     switch (section) {
         case SearchSection:
             return 1;
-        case ResultsSection:
+        case UsersSection:
             return self.objects.count;
         default:
             return 0;
@@ -164,7 +184,7 @@
     
     if (indexPath.section == SearchSection) {
         cell = self.searchTableViewCell;
-    } else if (indexPath.section == ResultsSection) {
+    } else if (indexPath.section == UsersSection) {
         cell = [tableView dequeueReusableCellWithIdentifier:@"Cell" forIndexPath:indexPath];
         
         NSDate *object = self.objects[indexPath.row];

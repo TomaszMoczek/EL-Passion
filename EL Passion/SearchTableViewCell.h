@@ -8,18 +8,17 @@
 
 #import <UIKit/UIKit.h>
 
-extern NSString * const ImageViewTouchBegan;
 extern NSString * const TextFieldDidEndEditing;
 
 @interface SearchTableViewCell : UITableViewCell <UITextFieldDelegate> {
+    NSString *_prevText;
     UIImageView *_imageView;
     UITextField *_textField;
-    UILabel *_label;
 }
 
+@property (strong, nonatomic) NSString *prevText;
 @property (strong, nonatomic) UIImageView *imageView;
 @property (strong, nonatomic) UITextField *textField;
-@property (strong, nonatomic) UILabel *label;
 
 @end
 

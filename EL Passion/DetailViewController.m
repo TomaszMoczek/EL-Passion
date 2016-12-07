@@ -15,28 +15,42 @@
 
 @implementation DetailViewController
 
+@synthesize buttonFirst = _buttonFirst;
+@synthesize buttonPrev = _buttonPrev;
+@synthesize buttonNext = _buttonNext;
+@synthesize buttonLast = _buttonLast;
+
 #pragma mark - Managing the detail item
 
 - (void)setDetailItem:(id)newDetailItem {
     if (_detailItem != newDetailItem) {
         _detailItem = newDetailItem;
-        
-        [self configureView];
-    }
-}
 
-- (void)configureView {
-    if (self.detailItem) {
-        self.title = [self.detailItem description];
-    } else {
-        self.title = NSLocalizedString(@"GitHub User's Repositories", @"GitHub User's Repositories");
+        [self.buttonFirst setEnabled:self.detailItem == nil ? NO : YES];
+        [self.buttonPrev setEnabled:self.detailItem == nil ? NO : YES];
+        [self.buttonNext setEnabled:self.detailItem == nil ? NO : YES];
+        [self.buttonLast setEnabled:self.detailItem == nil ? NO : YES];
+        
+        [self.tableView reloadData];
     }
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    [self configureView];
+    self.title = NSLocalizedString(@"GitHub's User", @"GitHub's User");
+    
+    self.buttonFirst = [[UIBarButtonItem alloc] initWithTitle:@"<<" style:UIBarButtonItemStyleDone target:self action:@selector(first)];
+    self.buttonPrev = [[UIBarButtonItem alloc] initWithTitle:@"<" style:UIBarButtonItemStyleDone target:self action:@selector(prev)];
+    self.buttonNext = [[UIBarButtonItem alloc] initWithTitle:@">" style:UIBarButtonItemStyleDone target:self action:@selector(next)];
+    self.buttonLast = [[UIBarButtonItem alloc] initWithTitle:@">>" style:UIBarButtonItemStyleDone target:self action:@selector(last)];
+    
+    [self.navigationItem setRightBarButtonItems:[NSArray arrayWithObjects:self.buttonLast, self.buttonNext, self.buttonPrev, self.buttonFirst, nil]];
+    
+    [self.buttonFirst setEnabled:self.detailItem == nil ? NO : YES];
+    [self.buttonPrev setEnabled:self.detailItem == nil ? NO : YES];
+    [self.buttonNext setEnabled:self.detailItem == nil ? NO : YES];
+    [self.buttonLast setEnabled:self.detailItem == nil ? NO : YES];
 }
 
 - (void)didRotateFromInterfaceOrientation:(UIInterfaceOrientation)fromInterfaceOrientation {
@@ -47,6 +61,24 @@
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
+}
+
+#pragma mark - Actions
+
+- (void)first {
+    
+}
+
+- (void)prev {
+    
+}
+
+- (void)next {
+    
+}
+
+- (void) last {
+    
 }
 
 #pragma mark - Table View
@@ -80,7 +112,7 @@
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     switch (section) {
         case UserSection:
-            return self.detailItem == nil ? 0 : 1;
+            return 1;
         case RepositoriesSection:
             return self.detailItem == nil ? 0 : 4;
         default:
@@ -94,9 +126,8 @@
     if (indexPath.section == UserSection) {
         cell = [tableView dequeueReusableCellWithIdentifier:@"UserCell" forIndexPath:indexPath];
         
-        NSDate *object = [NSDate date];
-        cell.textLabel.text = [object description];
-        cell.detailTextLabel.text = [object description];
+        cell.textLabel.text = self.detailItem == nil ? NSLocalizedString(@"Find and select the GitHub's User", @"Empty") : [self.detailItem description];
+        cell.detailTextLabel.text = self.detailItem == nil ? NSLocalizedString(@"The GitHub's User is to be found and selected prior to report its details here.", @"Empty-Description") : [self.detailItem description];
     } else {
         cell = [tableView dequeueReusableCellWithIdentifier:@"RepositoryCell" forIndexPath:indexPath];
         

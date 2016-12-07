@@ -13,9 +13,18 @@ enum {
     RepositoriesSection
 };
 
-@interface DetailViewController : UITableViewController
+@interface DetailViewController : UITableViewController {
+    UIBarButtonItem *_buttonFirst;
+    UIBarButtonItem *_buttonPrev;
+    UIBarButtonItem *_buttonNext;
+    UIBarButtonItem *_buttonLast;
+}
 
 @property (strong, nonatomic) id detailItem;
+@property (strong, nonatomic) UIBarButtonItem *buttonFirst;
+@property (strong, nonatomic) UIBarButtonItem *buttonPrev;
+@property (strong, nonatomic) UIBarButtonItem *buttonNext;
+@property (strong, nonatomic) UIBarButtonItem *buttonLast;
 
 @end
 
