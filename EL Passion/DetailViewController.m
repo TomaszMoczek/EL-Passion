@@ -277,12 +277,20 @@
     if (indexPath.section == UserSection) {
         cell = [tableView dequeueReusableCellWithIdentifier:@"UserCell" forIndexPath:indexPath];
         
+        UIImage *image = nil;
+        
         if (self.detailItem == nil) {
+            image = [UIImage imageNamed:@"NoImage"];
+            
             cell.accessoryType = UITableViewCellAccessoryNone;
+            
             cell.textLabel.text = NSLocalizedString(@"Find and select the GitHub's User", @"Empty");
             cell.detailTextLabel.text = NSLocalizedString(@"The GitHub's User is to be found and selected prior to report its details here.", @"Empty-Description");
         } else if ([self.data count] == 0) {
+            image = [UIImage imageNamed:@"NoImage"];
+            
             cell.accessoryType = UITableViewCellAccessoryNone;
+            
             cell.textLabel.text = @"";
             cell.detailTextLabel.text = @"";
         } else {
@@ -292,17 +300,43 @@
             NSString *followers = [self.data objectForKey:@"followers"];
             NSString *following = [self.data objectForKey:@"following"];
             
+            if ([self.image length] == 0) {
+                image = [UIImage imageNamed:@"NoImage"];
+            } else {
+                image = [UIImage imageWithData:self.image];
+            }
+                
             cell.accessoryType = UITableViewCellAccessoryDetailButton;
+            
             cell.textLabel.text = [name isEqual:[NSNull null]] ? login : name;
             cell.detailTextLabel.text = [NSString stringWithFormat:@"%@: %@,  %@: %@,  %@: %@", NSLocalizedString(@"Repositories", @"Repositories"), publicRepos, NSLocalizedString(@"Followers", @"Followers"), followers, NSLocalizedString(@"Following", @"Following"), following];
+        }
+        
+        if (image != nil && image.size.width != 0 && image.size.height != 0) {
+            cell.imageView.image = image;
+            
+            CGFloat widthScale = [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad ? 88.0 / image.size.width : 68.0 / image.size.width;
+            CGFloat heightScale = [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad ? 88.0 / image.size.height : 68.0 / image.size.height;
+            
+            cell.imageView.transform = CGAffineTransformMakeScale(widthScale, heightScale);
         }
     } else {
         cell = [tableView dequeueReusableCellWithIdentifier:@"RepositoryCell" forIndexPath:indexPath];
         
+        UIImage *image = [UIImage imageNamed:@"Measure"];
         NSString *description = [[self.repos objectAtIndex:indexPath.row] objectForKey:@"description"];
         
         cell.textLabel.text = [[self.repos objectAtIndex:indexPath.row] objectForKey:@"name"];
         cell.detailTextLabel.text = [description isEqual:[NSNull null]] ? @"" : description;
+        
+        if (image != nil && image.size.width != 0 && image.size.height != 0) {
+            cell.imageView.image = image;
+            
+            CGFloat widthScale = 36.0 / image.size.width;
+            CGFloat heightScale = 36.0 / image.size.height;
+            
+            cell.imageView.transform = CGAffineTransformMakeScale(widthScale, heightScale);
+        }
     }
     
     return cell;
@@ -313,6 +347,24 @@
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    switch (indexPath.section) {
+        case UserSection:
+            if ([self.data objectForKey:@"html_url"] != nil) {
+                [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[self.data objectForKey:@"html_url"]]];
+            }
+            break;
+            
+        case RepositoriesSection:
+            if ([[self.repos objectAtIndex:indexPath.row] objectForKey:@"html_url"] != nil) {
+                [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[[self.repos objectAtIndex:indexPath.row] objectForKey:@"html_url"]]];
+
+            }
+            break;
+            
+        default:
+            break;
+    }
+    
     [self.tableView deselectRowAtIndexPath:indexPath animated:NO];
 }
 
