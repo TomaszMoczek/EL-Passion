@@ -44,10 +44,14 @@
     
     self.searchTableViewCell = [[SearchTableViewCell alloc] initWithFrame:CGRectZero];
     
+    [self.searchTableViewCell setLabelText];
+    
     self.splitViewController.preferredDisplayMode = UISplitViewControllerDisplayModeAllVisible;
     
     self.detailViewController = (DetailViewController *)[[self.splitViewController.viewControllers lastObject] topViewController];
 
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(imageViewTouchBegan:) name:ImageViewTouchBegan object:nil];
+    
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(textFieldDidEndEditing:) name:TextFieldDidEndEditing object:nil];
     
     [self configureView];
@@ -97,7 +101,19 @@
 }
 
 - (void)getData:(NSString *)url {
-    [[[NSURLSession sharedSession] dataTaskWithURL:[NSURL URLWithString:url] completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]];
+
+    NSString *username = [[NSUserDefaults standardUserDefaults] objectForKey:@"Username"];
+    NSString *password = [[NSUserDefaults standardUserDefaults] objectForKey:@"Password"];
+
+    if ([username length] != 0) {
+        NSString *authString = [NSString stringWithFormat:@"%@:%@", username, password];
+        NSString *authHeader = [NSString stringWithFormat:@"Basic %@", [[authString dataUsingEncoding:NSUTF8StringEncoding] base64EncodedStringWithOptions:0]];
+        
+        [request setValue:authHeader forHTTPHeaderField:@"Authorization"];
+    }
+    
+    [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         if ([[error localizedDescription] length] != 0) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 UIAlertController *alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Error", @"Error") message:[error localizedDescription] preferredStyle:UIAlertControllerStyleAlert];
@@ -172,6 +188,46 @@
 }
 
 #pragma mark - Notifications
+
+- (void)imageViewTouchBegan:(NSNotification *)notification {
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"EL Passion" message:NSLocalizedString(@"Enter GitHub's Credentials", @"Enter GitHub's Credentials") preferredStyle:UIAlertControllerStyleAlert];
+    
+    [alertController addTextFieldWithConfigurationHandler:^(UITextField * textField) {
+        textField.placeholder = @"Username";
+        textField.text = [[NSUserDefaults standardUserDefaults] objectForKey:@"Username"];
+        
+        [textField setClearButtonMode:UITextFieldViewModeWhileEditing];
+    }];
+    
+    [alertController addTextFieldWithConfigurationHandler:^(UITextField * textField) {
+        textField.secureTextEntry = YES;
+        textField.placeholder = @"Password";
+        textField.text = [[NSUserDefaults standardUserDefaults] objectForKey:@"Password"];
+        
+        [textField setClearButtonMode:UITextFieldViewModeWhileEditing];
+    }];
+    
+    UIAlertAction *alertActionOK = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction *alertAction) {
+        [[NSUserDefaults standardUserDefaults] setObject:[alertController.textFields objectAtIndex:0].text forKey:@"Username"];
+        
+        [[NSUserDefaults standardUserDefaults] setObject:[alertController.textFields objectAtIndex:1].text forKey:@"Password"];
+        
+        [[NSUserDefaults standardUserDefaults] synchronize];
+        
+        [self.searchTableViewCell setLabelText];
+        
+        [alertController dismissViewControllerAnimated:YES completion:nil];
+    }];
+    
+    UIAlertAction *alertActionCancel = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction *alertAction) {
+        [alertController dismissViewControllerAnimated:YES completion:nil];
+    }];
+    
+    [alertController addAction:alertActionOK];
+    [alertController addAction:alertActionCancel];
+    
+    [self presentViewController:alertController animated:YES completion:nil];
+}
 
 - (void)textFieldDidEndEditing:(NSNotification *)notification {
     if ([self.searchTableViewCell.textField.text length] != 0) {

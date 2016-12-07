@@ -90,7 +90,19 @@
 
 - (void)getData:(NSString *)url typeOfData:(DataType)dataType {
     if (url != nil) {
-        [[[NSURLSession sharedSession] dataTaskWithURL:[NSURL URLWithString:url] completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]];
+        
+        NSString *username = [[NSUserDefaults standardUserDefaults] objectForKey:@"Username"];
+        NSString *password = [[NSUserDefaults standardUserDefaults] objectForKey:@"Password"];
+        
+        if ([username length] != 0) {
+            NSString *authString = [NSString stringWithFormat:@"%@:%@", username, password];
+            NSString *authHeader = [NSString stringWithFormat:@"Basic %@", [[authString dataUsingEncoding:NSUTF8StringEncoding] base64EncodedStringWithOptions:0]];
+            
+            [request setValue:authHeader forHTTPHeaderField:@"Authorization"];
+        }
+        
+        [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
             if ([[error localizedDescription] length] != 0) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     UIAlertController *alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Error", @"Error") message:[error localizedDescription] preferredStyle:UIAlertControllerStyleAlert];
@@ -266,18 +278,31 @@
         cell = [tableView dequeueReusableCellWithIdentifier:@"UserCell" forIndexPath:indexPath];
         
         if (self.detailItem == nil) {
+            cell.accessoryType = UITableViewCellAccessoryNone;
             cell.textLabel.text = NSLocalizedString(@"Find and select the GitHub's User", @"Empty");
             cell.detailTextLabel.text = NSLocalizedString(@"The GitHub's User is to be found and selected prior to report its details here.", @"Empty-Description");
+        } else if ([self.data count] == 0) {
+            cell.accessoryType = UITableViewCellAccessoryNone;
+            cell.textLabel.text = @"";
+            cell.detailTextLabel.text = @"";
         } else {
-            cell.textLabel.text = [self.data objectForKey:@"login"];
-            cell.detailTextLabel.text = [self.data objectForKey:@"login"];
+            NSString *name = [self.data objectForKey:@"name"];
+            NSString *login = [self.data objectForKey:@"login"];
+            NSString *publicRepos = [self.data objectForKey:@"public_repos"];
+            NSString *followers = [self.data objectForKey:@"followers"];
+            NSString *following = [self.data objectForKey:@"following"];
+            
+            cell.accessoryType = UITableViewCellAccessoryDetailButton;
+            cell.textLabel.text = [name isEqual:[NSNull null]] ? login : name;
+            cell.detailTextLabel.text = [NSString stringWithFormat:@"%@: %@,  %@: %@,  %@: %@", NSLocalizedString(@"Repositories", @"Repositories"), publicRepos, NSLocalizedString(@"Followers", @"Followers"), followers, NSLocalizedString(@"Following", @"Following"), following];
         }
     } else {
         cell = [tableView dequeueReusableCellWithIdentifier:@"RepositoryCell" forIndexPath:indexPath];
         
-        NSDate *object = [NSDate date];
-        cell.textLabel.text = [object description];
-        cell.detailTextLabel.text = [object description];
+        NSString *description = [[self.repos objectAtIndex:indexPath.row] objectForKey:@"description"];
+        
+        cell.textLabel.text = [[self.repos objectAtIndex:indexPath.row] objectForKey:@"name"];
+        cell.detailTextLabel.text = [description isEqual:[NSNull null]] ? @"" : description;
     }
     
     return cell;
