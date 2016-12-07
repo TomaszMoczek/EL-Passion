@@ -334,16 +334,18 @@
                     
                     if (image != nil && image.size.width != 0 && image.size.height != 0) {
                         dispatch_async(dispatch_get_main_queue(), ^{
-                            [[cell imageView] setImage:image];
-                            
-                            CGFloat widthScale = 36.0 / image.size.width;
-                            CGFloat heightScale = 36.0 / image.size.height;
-                            
-                            [[cell imageView] setTransform:CGAffineTransformMakeScale(widthScale, heightScale)];
-                            
-                            [cell layoutSubviews];
-                            
-                            [self.images setObject:imageData forKey:[[self.data objectAtIndex:indexPath.row] objectForKey:@"id"]];
+                            if (cell.tag == indexPath.row) {
+                                [[cell imageView] setImage:image];
+                                
+                                CGFloat widthScale = 36.0 / image.size.width;
+                                CGFloat heightScale = 36.0 / image.size.height;
+                                
+                                [[cell imageView] setTransform:CGAffineTransformMakeScale(widthScale, heightScale)];
+                                
+                                [cell layoutSubviews];
+                                
+                                [self.images setObject:imageData forKey:[[self.data objectAtIndex:indexPath.row] objectForKey:@"id"]];
+                            }
                         });
                     }
                 }
@@ -353,6 +355,7 @@
         }
         
         if (image != nil && image.size.width != 0 && image.size.height != 0) {
+            cell.tag = indexPath.row;
             cell.imageView.image = image;
             
             CGFloat widthScale = 36.0 / image.size.width;
