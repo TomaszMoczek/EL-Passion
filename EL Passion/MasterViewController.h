@@ -17,6 +17,8 @@ enum {
 @class SearchTableViewCell;
 
 @interface MasterViewController : UITableViewController {
+    NSDictionary *_urls;
+    NSDictionary *_data;
     UIBarButtonItem *_buttonFirst;
     UIBarButtonItem *_buttonPrev;
     UIBarButtonItem *_buttonNext;
@@ -24,6 +26,8 @@ enum {
     SearchTableViewCell *_searchTableViewCell;
 }
 
+@property (strong, nonatomic) NSDictionary *data;
+@property (strong, nonatomic) NSDictionary *urls;
 @property (strong, nonatomic) UIBarButtonItem *buttonFirst;
 @property (strong, nonatomic) UIBarButtonItem *buttonPrev;
 @property (strong, nonatomic) UIBarButtonItem *buttonNext;

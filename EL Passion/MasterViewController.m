@@ -19,6 +19,8 @@
 
 @implementation MasterViewController
 
+@synthesize urls = _urls;
+@synthesize data = _data;
 @synthesize buttonFirst = _buttonFirst;
 @synthesize buttonPrev = _buttonPrev;
 @synthesize buttonNext = _buttonNext;
@@ -27,6 +29,8 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+
+    self.objects = [[NSMutableArray alloc] init];
 
     self.title = NSLocalizedString(@"GitHub's Users", @"GitHub's Users");
     
@@ -43,14 +47,9 @@
     
     self.detailViewController = (DetailViewController *)[[self.splitViewController.viewControllers lastObject] topViewController];
 
-    self.objects = [[NSMutableArray alloc] init];
-    
-    [self.buttonFirst setEnabled:NO];
-    [self.buttonPrev setEnabled:NO];
-    [self.buttonNext setEnabled:NO];
-    [self.buttonLast setEnabled:NO];
-    
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(textFieldDidEndEditing:) name:TextFieldDidEndEditing object:nil];
+    
+    [self configureview];
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -84,47 +83,115 @@
     [super viewDidUnload];
 }
 
+#pragma mart - Other
+
+- (void)configureview {
+    [self.buttonFirst setEnabled:[self.urls objectForKey:@"first"] == nil ? NO : YES];
+    [self.buttonPrev setEnabled:[self.urls objectForKey:@"prev"] == nil ? NO : YES];
+    [self.buttonNext setEnabled:[self.urls objectForKey:@"next"] == nil ? NO : YES];
+    [self.buttonLast setEnabled:[self.urls objectForKey:@"last"] == nil ? NO : YES];
+    
+    [self.tableView reloadData];
+}
+
+- (void)getData:(NSString *)url {
+    [[[NSURLSession sharedSession] dataTaskWithURL:[NSURL URLWithString:url] completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        if (error != nil) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                UIAlertController *alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Error", @"Error") message:[error localizedDescription] preferredStyle:UIAlertControllerStyleAlert];
+                
+                UIAlertAction *action = [UIAlertAction actionWithTitle:NSLocalizedString(@"Cancel", @"Cancel") style:UIAlertActionStyleCancel handler:nil];
+                
+                [alertController addAction:action];
+                
+                [self presentViewController:alertController animated:YES completion:nil];
+                
+                [self.objects removeAllObjects];
+                
+                [self configureview];
+            });
+        } else {
+            NSMutableDictionary *links = [[NSMutableDictionary alloc] init];
+            NSString *linkHeader = [[(NSHTTPURLResponse *)response allHeaderFields] objectForKey:@"Link"];
+            
+            if ([linkHeader length] != 0) {
+                NSArray *_links = [linkHeader componentsSeparatedByString:@", "];
+                
+                for (int i=0; i<[_links count]; ++i) {
+                    NSArray *_link = [[_links objectAtIndex:i] componentsSeparatedByString:@"; "];
+                    
+                    if ([_link count] == 2) {
+                        NSArray *_tokens = [[_link objectAtIndex:1] componentsSeparatedByString:@"\""];
+                        
+                        if ([_tokens count] == 3) {
+                            NSString *key = [_tokens objectAtIndex:1];
+                            NSString *value = [[[_link objectAtIndex:0] stringByReplacingOccurrencesOfString:@"<" withString:@""] stringByReplacingOccurrencesOfString:@">" withString:@""];
+                            
+                            [links setObject:value forKey:key];
+                        }
+                    }
+                }
+            }
+
+            NSError *jsonError = nil;
+            NSDictionary *jsonOutput = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
+            
+            if (jsonError != nil) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Error", @"Error") message:[jsonError localizedDescription] preferredStyle:UIAlertControllerStyleAlert];
+                    
+                    UIAlertAction *action = [UIAlertAction actionWithTitle:NSLocalizedString(@"Cancel", @"Cancel") style:UIAlertActionStyleCancel handler:nil];
+                    
+                    [alertController addAction:action];
+                    
+                    [self presentViewController:alertController animated:YES completion:nil];
+                    
+                    [self.objects removeAllObjects];
+                    
+                    [self configureview];
+                });
+            } else {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    self.urls = [NSDictionary dictionaryWithDictionary:links];
+                    self.data = [NSDictionary dictionaryWithDictionary:jsonOutput];
+                    
+                    [self configureview];
+                });
+            }
+        }
+    }] resume];
+}
+
 #pragma mark - Notifications
 
 - (void)textFieldDidEndEditing:(NSNotification *)notification {
-    [self.objects removeAllObjects];
-    
-    [self.buttonFirst setEnabled:NO];
-    [self.buttonPrev setEnabled:NO];
-    [self.buttonNext setEnabled:NO];
-    [self.buttonLast setEnabled:NO];
-    
-    if (self.searchTableViewCell.textField.text != nil
-        && self.searchTableViewCell.textField.text.length != 0) {
-        for (int i=0; i<4; ++i) {
-            [self.objects insertObject:[NSDate date] atIndex:0];
-        }
+    if ([self.searchTableViewCell.textField.text length] != 0) {
+        NSString *url = [NSString stringWithFormat:@"https://api.github.com/search/users?q=%@&page=1&per_page=100&order=asc", [self.searchTableViewCell.textField.text stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]]];
         
-        [self.buttonFirst setEnabled:YES];
-        [self.buttonPrev setEnabled:YES];
-        [self.buttonNext setEnabled:YES];
-        [self.buttonLast setEnabled:YES];
+        [self getData:url];
+    } else {
+        [self.objects removeAllObjects];
+        
+        [self configureview];
     }
-    
-    [self.tableView reloadData];
 }
 
 #pragma mark - Actions
 
 - (void)first {
-    
+    [self getData:[self.urls objectForKey:@"first"]];
 }
 
 - (void)prev {
-    
+    [self getData:[self.urls objectForKey:@"prev"]];
 }
 
 - (void)next {
-    
+    [self getData:[self.urls objectForKey:@"next"]];
 }
 
 - (void) last {
-    
+    [self getData:[self.urls objectForKey:@"last"]];
 }
 
 #pragma mark - Segues
