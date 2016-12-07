@@ -8,6 +8,9 @@
 
 #import "SearchTableViewCell.h"
 
+NSString * const ImageViewTouchBegan = @"ImageViewTouchBegan";
+NSString * const TextFieldDidEndEditing = @"TextFieldDidEndEditing";
+
 @implementation SearchTableViewCell
 
 @synthesize imageView = _imageView;
@@ -33,7 +36,11 @@
         [self.textField setClearButtonMode:UITextFieldViewModeWhileEditing];
         
         self.label = [[UILabel alloc] init];
-        self.label.font = [UIFont fontWithName:@"Georgia" size:7.0];
+        if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+            self.label.font = [UIFont fontWithName:@"Georgia" size:7.0];
+        } else {
+            self.label.font = [UIFont fontWithName:@"Georgia" size:11.0];
+        }
         self.label.text = NSLocalizedString(@"Tap the GitHub's image to Sign In ...", @"Tap the GitHub's image to Sign In ...");
         
         [self addSubview:self.imageView];
@@ -49,12 +56,12 @@
     
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
         self.imageView.frame = CGRectMake(self.bounds.origin.x + 10.0, 0.0, 84.0, 84.0);
-        self.textField.frame = CGRectMake(self.bounds.origin.x + 94.0, 10.0, self.bounds.size.width - 114.0, 32.0);
+        self.textField.frame = CGRectMake(self.bounds.origin.x + 94.0, 20.0, self.bounds.size.width - 114.0, 32.0);
         self.label.frame = CGRectMake(self.bounds.origin.x + 94.0, 58.0, self.bounds.size.width - 114.0, 12.0);
     } else {
-        self.imageView.frame = CGRectMake(self.bounds.origin.x + 10.0, 0.0, 104.0, 104.0);
-        self.textField.frame = CGRectMake(self.bounds.origin.x + 114.0, 10.0, self.bounds.size.width - 134.0, 32.0);
-        self.label.frame = CGRectMake(self.bounds.origin.x + 114.0, 78.0, self.bounds.size.width - 114.0, 12.0);
+        self.imageView.frame = CGRectMake(self.bounds.origin.x + 10.0, 10.0, 84.0, 84.0);
+        self.textField.frame = CGRectMake(self.bounds.origin.x + 94.0, 30.0, self.bounds.size.width - 114.0, 32.0);
+        self.label.frame = CGRectMake(self.bounds.origin.x + 94.0, 68.0, self.bounds.size.width - 114.0, 12.0);
     }
 }
 
@@ -64,10 +71,22 @@
     [self setSelectionStyle:UITableViewCellSelectionStyleNone];
 }
 
+- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
+    UITouch *touch = [touches anyObject];
+    
+    if ([touch view] == self.imageView) {
+        [[NSNotificationCenter defaultCenter] postNotificationName:ImageViewTouchBegan object:self];
+    }
+}
+
 - (BOOL)textFieldShouldReturn:(UITextField *)textField {
     [self.textField resignFirstResponder];
     
     return YES;
+}
+
+- (void)textFieldDidEndEditing:(UITextField *)textField {
+    [[NSNotificationCenter defaultCenter] postNotificationName:TextFieldDidEndEditing object:self];
 }
 
 @end

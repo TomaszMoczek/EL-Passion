@@ -35,6 +35,9 @@
     self.splitViewController.preferredDisplayMode = UISplitViewControllerDisplayModeAllVisible;
     self.detailViewController = (DetailViewController *)[[self.splitViewController.viewControllers lastObject] topViewController];
     self.searchTableViewCell = [[SearchTableViewCell alloc] initWithFrame:CGRectZero];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(imageViewTouchBegan:) name:ImageViewTouchBegan object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(textFieldDidEndEditing:) name:TextFieldDidEndEditing object:nil];
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -60,9 +63,48 @@
 }
 
 - (void)viewDidUnload {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
     self.searchTableViewCell = nil;
     
     [super viewDidUnload];
+}
+
+#pragma mark - Notifications
+
+- (void)imageViewTouchBegan:(NSNotification *)notification {
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"EL Passion" message:NSLocalizedString(@"Enter GitHub's Credentials", @"Enter GitHub's Credentials") preferredStyle:UIAlertControllerStyleAlert];
+
+    [alertController addTextFieldWithConfigurationHandler:^(UITextField * textField) {
+        textField.placeholder = @"GitHub's URL";
+        [textField setClearButtonMode:UITextFieldViewModeWhileEditing];
+    }];
+    [alertController addTextFieldWithConfigurationHandler:^(UITextField * textField) {
+        textField.placeholder = @"Username";
+        [textField setClearButtonMode:UITextFieldViewModeWhileEditing];
+    }];
+    [alertController addTextFieldWithConfigurationHandler:^(UITextField * textField) {
+        textField.placeholder = @"Password";
+        textField.secureTextEntry = YES;
+        [textField setClearButtonMode:UITextFieldViewModeWhileEditing];
+    }];
+    
+    UIAlertAction *alertActionOK = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction *alertAction) {
+        // ...
+        [alertController dismissViewControllerAnimated:YES completion:nil];
+    }];
+    
+    UIAlertAction *alertActionCancel = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction *alertAction) {
+        [alertController dismissViewControllerAnimated:YES completion:nil];
+    }];
+    
+    [alertController addAction:alertActionOK];
+    [alertController addAction:alertActionCancel];
+    
+    [self presentViewController:alertController animated:YES completion:nil];
+}
+
+- (void)textFieldDidEndEditing:(NSNotification *)notification {
+    NSLog(@"%@", self.searchTableViewCell.textField.text);
 }
 
 #pragma mark - Segues

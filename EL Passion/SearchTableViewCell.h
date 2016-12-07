@@ -8,6 +8,9 @@
 
 #import <UIKit/UIKit.h>
 
+extern NSString * const ImageViewTouchBegan;
+extern NSString * const TextFieldDidEndEditing;
+
 @interface SearchTableViewCell : UITableViewCell <UITextFieldDelegate> {
     UIImageView *_imageView;
     UITextField *_textField;
