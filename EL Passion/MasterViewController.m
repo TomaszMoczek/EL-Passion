@@ -19,15 +19,20 @@
 
 @synthesize data = _data;
 @synthesize urls = _urls;
+@synthesize images = _images;
 @synthesize buttonFirst = _buttonFirst;
 @synthesize buttonPrev = _buttonPrev;
 @synthesize buttonNext = _buttonNext;
 @synthesize buttonLast = _buttonLast;
 @synthesize searchTableViewCell = _searchTableViewCell;
 
+#pragma mark  - View
+
 - (void)viewDidLoad {
     [super viewDidLoad];
 
+    self.images = [[NSMutableDictionary alloc] init];
+    
     self.title = NSLocalizedString(@"GitHub's Users", @"GitHub's Users");
     
     self.buttonFirst = [[UIBarButtonItem alloc] initWithTitle:@"<<" style:UIBarButtonItemStyleDone target:self action:@selector(first)];
@@ -75,11 +80,12 @@
     
     [self.data removeAllObjects];
     [self.urls removeAllObjects];
+    [self.images removeAllObjects];
     
     [super viewDidUnload];
 }
 
-#pragma mart - Other
+#pragma mark - Other
 
 - (void)configureView {
     [self.buttonFirst setEnabled:[self.urls objectForKey:@"first"] == nil ? NO : YES];
@@ -92,7 +98,7 @@
 
 - (void)getData:(NSString *)url {
     [[[NSURLSession sharedSession] dataTaskWithURL:[NSURL URLWithString:url] completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-        if (error != nil) {
+        if ([[error localizedDescription] length] != 0) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 UIAlertController *alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Error", @"Error") message:[error localizedDescription] preferredStyle:UIAlertControllerStyleAlert];
                 
@@ -107,7 +113,7 @@
             NSUInteger statusCode = [(NSHTTPURLResponse *)response statusCode];
             NSDictionary *jsonOutput = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
             
-            if (jsonError != nil) {
+            if ([[jsonError localizedDescription] length] != 0) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     UIAlertController *alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Error", @"Error") message:[jsonError localizedDescription] preferredStyle:UIAlertControllerStyleAlert];
                     
@@ -156,6 +162,8 @@
                     self.data = [NSMutableArray arrayWithArray:[jsonOutput objectForKey:@"items"]];
                     self.urls = [NSMutableDictionary dictionaryWithDictionary:links];
                     
+                    [self.images removeAllObjects];
+                    
                     [self configureView];
                 });
             }
@@ -167,12 +175,13 @@
 
 - (void)textFieldDidEndEditing:(NSNotification *)notification {
     if ([self.searchTableViewCell.textField.text length] != 0) {
-        NSString *url = [NSString stringWithFormat:@"https://api.github.com/search/users?q=%@&page=1&per_page=25&order=asc", [self.searchTableViewCell.textField.text stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]]];
+        NSString *url = [NSString stringWithFormat:@"https://api.github.com/search/users?q=%@&page=1&per_page=100&order=asc", [self.searchTableViewCell.textField.text stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]]];
         
         [self getData:url];
     } else {
         [self.data removeAllObjects];
         [self.urls removeAllObjects];
+        [self.images removeAllObjects];
         
         [self configureView];
     }
@@ -255,8 +264,47 @@
         cell = self.searchTableViewCell;
     } else if (indexPath.section == UsersSection) {
         cell = [tableView dequeueReusableCellWithIdentifier:@"Cell" forIndexPath:indexPath];
+
+        UIImage *image = nil;
+        NSData *imageData = [self.images objectForKey:[[self.data objectAtIndex:indexPath.row] objectForKey:@"id"]];
         
-        cell.imageView.image = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:[[self.data objectAtIndex:indexPath.row] objectForKey:@"avatar_url"]]]];
+        if (imageData == nil) {
+            image = [UIImage imageNamed:@"NoImage"];
+            
+            [[[NSURLSession sharedSession] dataTaskWithURL:[NSURL URLWithString:[[self.data objectAtIndex:indexPath.row] objectForKey:@"avatar_url"]] completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+                if (error == nil && [(NSHTTPURLResponse *)response statusCode] == 200) {
+                    UIImage *image = [UIImage imageWithData:data];
+                    NSData *imageData = [NSData dataWithData:data];
+                    
+                    if (image != nil && image.size.width != 0 && image.size.height != 0) {
+                        dispatch_async(dispatch_get_main_queue(), ^{
+                            [[cell imageView] setImage:image];
+                            
+                            CGFloat widthScale = 36.0 / image.size.width;
+                            CGFloat heightScale = 36.0 / image.size.height;
+                            
+                            [[cell imageView] setTransform:CGAffineTransformMakeScale(widthScale, heightScale)];
+                            
+                            [cell layoutSubviews];
+                            
+                            [self.images setObject:imageData forKey:[[self.data objectAtIndex:indexPath.row] objectForKey:@"id"]];
+                        });
+                    }
+                }
+            }] resume];
+        } else {
+            image = [UIImage imageWithData:imageData];
+        }
+        
+        if (image != nil && image.size.width != 0 && image.size.height != 0) {
+            cell.imageView.image = image;
+            
+            CGFloat widthScale = 36.0 / image.size.width;
+            CGFloat heightScale = 36.0 / image.size.height;
+            
+            cell.imageView.transform = CGAffineTransformMakeScale(widthScale, heightScale);
+        }
+        
         cell.textLabel.text = [[self.data objectAtIndex:indexPath.row] objectForKey:@"login"];
         cell.detailTextLabel.text = [NSString stringWithFormat:@"Score: %@", [[self.data objectAtIndex:indexPath.row] objectForKey:@"score"]];
     }
@@ -269,7 +317,7 @@
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-    [self.tableView deselectRowAtIndexPath:indexPath animated:NO];
+    [self.tableView deselectRowAtIndexPath:indexPath animated:YES];
 }
 
 @end

@@ -19,6 +19,7 @@ enum {
 @interface MasterViewController : UITableViewController {
     NSMutableArray *_data;
     NSMutableDictionary *_urls;
+    NSMutableDictionary *_images;
     UIBarButtonItem *_buttonFirst;
     UIBarButtonItem *_buttonPrev;
     UIBarButtonItem *_buttonNext;
@@ -28,6 +29,7 @@ enum {
 
 @property (strong, atomic) NSMutableArray *data;
 @property (strong, atomic) NSMutableDictionary *urls;
+@property (strong, atomic) NSMutableDictionary *images;
 @property (strong, nonatomic) UIBarButtonItem *buttonFirst;
 @property (strong, nonatomic) UIBarButtonItem *buttonPrev;
 @property (strong, nonatomic) UIBarButtonItem *buttonNext;
