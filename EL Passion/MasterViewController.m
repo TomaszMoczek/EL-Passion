@@ -26,7 +26,7 @@
 @synthesize buttonLast = _buttonLast;
 @synthesize searchTableViewCell = _searchTableViewCell;
 
-#pragma mark  - View
+#pragma mark  - Table View
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -201,7 +201,7 @@
     [self getData:[self.urls objectForKey:@"next"]];
 }
 
-- (void) last {
+- (void)last {
     [self getData:[self.urls objectForKey:@"last"]];
 }
 

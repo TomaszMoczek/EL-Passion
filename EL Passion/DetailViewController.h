@@ -13,7 +13,17 @@ enum {
     RepositoriesSection
 };
 
+typedef enum {
+    UserData = 0,
+    ImageData,
+    ReposData
+} DataType;
+
 @interface DetailViewController : UITableViewController {
+    NSMutableDictionary *_data;
+    NSMutableData *_image;
+    NSMutableArray *_repos;
+    NSMutableDictionary *_urls;
     UIBarButtonItem *_buttonFirst;
     UIBarButtonItem *_buttonPrev;
     UIBarButtonItem *_buttonNext;
@@ -21,6 +31,10 @@ enum {
 }
 
 @property (strong, nonatomic) id detailItem;
+@property (strong, atomic) NSMutableDictionary *data;
+@property (strong, atomic) NSMutableData *image;
+@property (strong, atomic) NSMutableArray *repos;
+@property (strong, atomic) NSMutableDictionary *urls;
 @property (strong, nonatomic) UIBarButtonItem *buttonFirst;
 @property (strong, nonatomic) UIBarButtonItem *buttonPrev;
 @property (strong, nonatomic) UIBarButtonItem *buttonNext;
